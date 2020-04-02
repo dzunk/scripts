@@ -1,0 +1,25 @@
+#!/usr/bin/env ruby
+
+require 'git_fame'
+MIN_THRESHOLD = 3
+
+begin
+  filename = ARGV[0]
+  return puts 'Pick a file, any file. Hold it in your mind...' if filename.nil?
+  info = GitFame::Base.new(repository: `pwd`.chomp, include: filename)
+  authors = info.authors.select { |a| a.loc.to_i.positive? }
+  top_author = authors.shift
+
+  puts "I bet #{top_author.name} knows about that!"
+  puts "They're the #{authors.any? ? 'top' : 'only'} contributor to that file (#{top_author.loc} LOC)"
+  authors.reject! { |a| a.loc.to_i < MIN_THRESHOLD }
+  return unless authors.any?
+
+  puts "\nIf they don't, or you can't reach them, here are some other contributors:"
+  authors.each do |a|
+    puts "#{a.loc} LOC - #{a.name}"
+  end
+rescue StandardError => e
+  puts "Oh no! I don't know about #{filename}!"
+  puts "(#{e.class}, #{e})"
+end
