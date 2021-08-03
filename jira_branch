@@ -18,7 +18,6 @@ issue_id = issue_id.split('/').last
 jira_url = "#{JIRA_URL}/rest/api/3/issue/#{issue_id}"
 
 response = `curl -nsX GET -H "Content-Type: application/json" https://#{jira_url}`
-binding.irb
 parsed = JSON[response]
 
 if parsed['errorMessages'] || !parsed['fields']
