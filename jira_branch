@@ -1,0 +1,57 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'json'
+JIRA_URL = ENV.fetch('JIRA_URL')
+
+if `grep #{JIRA_URL} $HOME/.netrc`.chomp.empty?
+  abort 'Please add your JIRA username and API token to ~/.netrc'
+end
+
+unless (issue_id = ARGV[0])
+  print 'What is the issue key or URL? '
+  issue_id = gets.chomp
+end
+
+abort 'No JIRA issue provided!' if issue_id.empty?
+issue_id = issue_id.split('/').last
+jira_url = "#{JIRA_URL}/rest/api/3/issue/#{issue_id}"
+
+response = `curl -nsX GET -H "Content-Type: application/json" https://#{jira_url}`
+binding.irb
+parsed = JSON[response]
+
+if parsed['errorMessages'] || !parsed['fields']
+  abort "Error getting JIRA data for #{issue_id}"
+end
+
+key = parsed['key']
+summary = parsed.dig('fields', 'summary')
+type = parsed.dig('fields', 'issuetype', 'name')
+status = parsed.dig('fields', 'status', 'name')
+reporter = parsed.dig('fields', 'reporter', 'displayName')
+assignee = parsed.dig('fields', 'assignee', 'displayName')
+link_url = "#{JIRA_URL}/browse/#{key}"
+branch_name = "#{type.downcase.gsub(/[\s\.]+/, '-').gsub(/[^\w-]/, '')}/#{key}"
+
+puts <<~MSG
+  #{'=' * (key.length + summary.length + 5)}
+   [#{key}] #{summary}
+  #{'=' * (key.length + summary.length + 5)}
+  URL: #{link_url}
+  Type: #{type}
+  Status: #{status}
+  Reported By: #{reporter}
+  Assigned To: #{assignee}
+MSG
+
+exit if `git rev-parse --abbrev-ref HEAD`.chomp == branch_name
+puts
+if `git branch | grep #{branch_name}`.chomp.length.zero?
+  puts "Creating branch #{branch_name}..."
+  `git fetch && git checkout develop && git pull`
+  `git checkout -b #{branch_name}`
+else
+  puts "Switching to branch #{branch_name}..."
+  `git switch #{branch_name}`
+end
