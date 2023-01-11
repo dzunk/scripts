@@ -5,7 +5,10 @@ MIN_THRESHOLD = 3
 
 begin
   filename = ARGV[0]
-  return puts 'Pick a file, any file. Hold it in your mind...' if filename.nil?
+  if filename.nil?
+    puts 'Pick a file, any file. Hold it in your mind...'
+    return
+  end
   info = GitFame::Base.new(repository: `pwd`.chomp, include: filename)
   authors = info.authors.select { |a| a.loc.to_i.positive? }
   top_author = authors.shift
