@@ -33,4 +33,4 @@ else
   fi
 fi
 
-echo -e "$ICON $COLOR $PERCENT%"
+echo -e "$ICON $COLOR$PERCENT%"
