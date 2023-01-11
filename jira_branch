@@ -48,7 +48,7 @@ exit if `git rev-parse --abbrev-ref HEAD`.chomp == branch_name
 puts
 if `git branch | grep #{branch_name}`.chomp.length.zero?
   puts "Creating branch #{branch_name}..."
-  `git fetch && git checkout develop && git pull`
+  `git fetch && git checkout master && git pull`
   `git checkout -b #{branch_name}`
 else
   puts "Switching to branch #{branch_name}..."
