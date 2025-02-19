@@ -1,0 +1,38 @@
+#!/usr/bin/env ruby
+#
+# public_ip
+#
+HISTORY_FILE = "#{Dir.home}/.public_ip"
+
+history_data = File.read(HISTORY_FILE).split("\n")
+timestamp = history_data[0].split.last
+public_ip = history_data[1].split.last
+
+# Debounce the lookup to once every 2 minutes
+if timestamp && timestamp.to_i >= Time.now.to_i - 120
+  print public_ip
+  exit
+end
+
+# Debounce the lookup if our private IPs haven't changed
+interface_ips = history_data[3..].join("\n")
+fresh_interface_ips = `ifconfig | grep -Eo 'inet (addr:)?([0-9]+\.){3}[0-9]+'`.chomp
+
+if interface_ips == fresh_interface_ips && timestamp.to_i >= Time.now.to_i - 1800
+  print public_ip
+  exit
+end
+
+fresh_public_ip = `curl -s ifconfig.me/ip`
+fresh_data = <<~DATA.chomp
+Timestamp: #{Time.now.to_i}
+Public IP: #{fresh_public_ip}
+Interface IPs:
+#{fresh_interface_ips}
+DATA
+
+File.open(HISTORY_FILE, 'w') do |file|
+  file.write(fresh_data)
+end
+
+print public_ip
