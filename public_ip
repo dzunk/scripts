@@ -35,4 +35,4 @@ File.open(HISTORY_FILE, 'w') do |file|
   file.write(fresh_data)
 end
 
-print public_ip
+print fresh_public_ip
