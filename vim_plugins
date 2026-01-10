@@ -1,0 +1,58 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+module VimPlugins
+  extend self
+
+  MANIFEST_PATH = File.join(Dir.home, '.vim', 'manifest')
+  BUNDLE_PATH = File.join(Dir.home, '.vim', 'bundle')
+
+  def dump
+    directories = Dir.glob(File.join(BUNDLE_PATH, '*'))
+    manifest = directories.sort.filter_map do |dir|
+      next unless File.directory?(File.join(dir, '.git'))
+
+      name = File.basename(dir)
+      remote_url = `git -C #{dir} remote get-url origin 2>/dev/null`.strip
+      next if remote_url.empty?
+
+      { name: name, url: remote_url }
+    end
+
+    File.open(MANIFEST_PATH, 'w') do |f|
+      manifest.each do |plugin|
+        f.puts "#{plugin[:name]}: #{plugin[:url]}"
+      end
+    end
+    puts "Manifest saved to #{MANIFEST_PATH}"
+  end
+
+  def install
+    unless File.exist?(MANIFEST_PATH)
+      abort "Manifest not found at #{MANIFEST_PATH}"
+    end
+
+    Dir.mkdir(BUNDLE_PATH) unless Dir.exist?(BUNDLE_PATH)
+
+    File.readlines(MANIFEST_PATH).each do |line|
+      line = line.strip
+      next if line.empty?
+
+      name, url = line.split(': ', 2)
+      plugin_path = File.join(BUNDLE_PATH, name)
+
+      if Dir.exist?(plugin_path)
+        puts "Skipping #{name} (already installed)"
+      else
+        puts "Installing #{name}..."
+        system('git', 'clone', url, plugin_path)
+      end
+    end
+  end
+
+end
+
+if ARGV[0]
+  VimPlugins.public_send ARGV[0]
+else
+  puts "Dump, or install?"
+end
