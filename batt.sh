@@ -11,6 +11,10 @@ BATT='🔋'
 CHARGING='⚡'
 AC='🔌'
 
+if [[ -z command -v pmset >/dev/null 2>&1 ]]; then
+  exit 0
+fi
+
 PWR_SRC=$(pmset -g batt | awk 'NR<2 { print $4 }' | sed "s/'//")
 PERCENT=$(pmset -g batt | awk 'NR>1 { print $3 }' | sed "s/%;//")
 
