@@ -4,9 +4,15 @@
 #
 HISTORY_FILE = "#{Dir.home}/.public_ip"
 
+if !File.exist?(HISTORY_FILE)
+  File.open(HISTORY_FILE, 'w') {}
+end
+
 history_data = File.read(HISTORY_FILE).split("\n")
-timestamp = history_data[0].split.last
-public_ip = history_data[1].split.last
+if history_data.any?
+  timestamp = history_data[0].split.last
+  public_ip = history_data[1].split.last
+end
 
 # Debounce the lookup to once every 2 minutes
 if timestamp && timestamp.to_i >= Time.now.to_i - 120
@@ -15,8 +21,12 @@ if timestamp && timestamp.to_i >= Time.now.to_i - 120
 end
 
 # Debounce the lookup if our private IPs haven't changed
-interface_ips = history_data[3..].join("\n")
-fresh_interface_ips = `ifconfig | grep -Eo 'inet (addr:)?([0-9]+\.){3}[0-9]+'`.chomp
+interface_ips = history_data[3..].join("\n") if history_data.any?
+fresh_interface_ips = if `which ip`.chomp.length
+                        `ip -4 addr | grep -oP '(?<=inet\s)[\\d\.]+'`.chomp
+                      else
+                        `ifconfig | grep -Eo 'inet (addr:)?([0-9]+\.){3}[0-9]+'`.chomp
+                      end
 
 if interface_ips == fresh_interface_ips && timestamp.to_i >= Time.now.to_i - 1800
   print public_ip
