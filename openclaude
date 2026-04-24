@@ -1,0 +1,29 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'json'
+
+claude_auth_details = JSON[`claude auth status`]
+if claude_auth_details['loggedIn']
+  puts "Logged in as #{claude_auth_details['email']}"
+else
+  puts 'Not logged in. Please run `claude auth login` to log in.'
+  exit 1
+end
+
+claude_credentials = JSON[`security find-generic-password -s "Claude Code-credentials" -w`]['claudeAiOauth']
+access_token = claude_credentials['accessToken']
+refresh_token = claude_credentials['refreshToken']
+expires_at = claude_credentials['expiresAt']
+
+destination_file = "#{Dir.home}/.local/share/opencode/auth.json"
+opencode_auth = JSON[File.read(destination_file)]
+
+opencode_auth['anthropic'] ||= {}
+opencode_auth['anthropic']['type'] = 'oauth'
+opencode_auth['anthropic']['refresh'] = refresh_token
+opencode_auth['anthropic']['access'] = access_token
+opencode_auth['anthropic']['expires'] = expires_at
+
+File.write(destination_file, JSON.pretty_generate(opencode_auth))
+exec 'opencode'
